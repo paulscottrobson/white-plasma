@@ -1,0 +1,31 @@
+;
+;		Run time, no code field. DE points to code.
+;
+next:
+		mov		a,(de) 					; read high byte
+		mov 	h,a 					; put in H
+		inc 	de
+		add 	a 						; shift left into A
+		jr 		z,changePage 			; if zero, go to a new page.
+
+
+		mov		a,(de)					; HL now contains instruction
+		mov 	l,a
+		add 	hl,hl 					; now its an address. 0000-FFFF even.
+		bit 	7,h 				
+		jr 		nz,_call
+		jp 		(hl)					; go execute raw code.
+
+		... which then
+
+		jr 		next
+
+__call:	<push HL on return stack>		
+		<de = call address>
+		jr 		next
+
+;
+;		Code field. Execute word at HL, code field at HL, called from DE.
+;
+		inc 	hl 						; step over code field bit, which was JP (IX)
+		inc  	hl

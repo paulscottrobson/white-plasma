@@ -1,0 +1,39 @@
+{ ******************************************************************************************* }
+{ *																							* }
+{ *								Group 2 Colour Forth words 									* }
+{ *																							* }
+{ ******************************************************************************************* }
+
+{ *** Constants *** }
+
+:4 			$4 ;
+:8 			$8 ;
+:10 		$A ;
+:16 		$10 ;
+:100 		$64 ;
+:256 		$100 ;
+
+{ *** Arithmetic Operators *** }
+
+:abs 		dup 0< if 0- then ;
+:max 		over over - 0< if swap then drop ;
+:min 		over over - 0< 0= if swap then drop ;
+
+{ *** Stack Operators *** }
+
+:rdrop 		[r>] r> drop >r ;
+:nip 		swap drop ;
+
+{ *** Comparison operators *** }
+
+:0> 		0- 0< ;
+:0>= 		0< not ;
+:0<= 		0> not ;
+
+:< 			- 0< ;
+:>= 		< 0= ;
+:>	 		swap < ;
+:<= 		> 0= ;
+:= 			- 0= ;
+:<> 		= 0= ;
+

@@ -1,0 +1,38 @@
+{ ******************************************************************************************* }
+{ *																							* }
+{ *								Group 3 Colour Forth words 									* }
+{ *																							* }
+{ ******************************************************************************************* }
+
+{ *** Subtract from memory *** }
+
+:-! 		swap 0- swap +! ;
+
+{ *** Shift. Note right are arithmetic not logical, except >> *** }
+
+:4* 		2* 2* ;
+:8* 		4* 2* ;
+:16* 		4* 4* ;
+:256* 		16* 16* ;
+:16/ 		2/ 2/ 2/ 2/ ;
+:256/ 		16/ 16/ ;
+
+:>> 		2/ $7FFF and ;				{ these two imply logical shifts }
+:<< 		2* ;
+
+{ *** Stack Operations *** }
+
+:rot >r >r [sysinfo] ! r> r> [sysinfo] @ ; 
+
+:mtemp variable 						{ result of multiply }
+
+:__* private							{ bit test,add, shift of multiply. }
+	dup 1 and 							{ check LSB }
+	if swap dup mtemp +! swap then 		{ if set add alt value to total }
+	>> 									{ shift right }
+	swap 2* swap 						{ shift other left }
+;
+
+:* 	0 mtemp ! 							{ result }
+	do __* dup 0=  until 				{ do bit shifts until rvalue shift 0 }
+	drop drop mtemp @ ;					{ throw away operands, return result }

@@ -1,0 +1,59 @@
+{ ******************************************************************************************* }
+{ *																							* }
+{ *								Group 1 Colour Forth words 									* }
+{ *																							* }
+{ ******************************************************************************************* }
+
+{ It is almost mandatory to convert these to machine code, except for initial }
+{ implementation/testing as they will be very slow in general operation }
+
+[nop]		{ stops a word being defined as $8000 in VM. }
+
+{*** Constants ***}
+
+:0			$0	;
+:1			$1 	;
+:2			$2 	;
+:-1			$FFFF ;
+
+{*** Basic stack operations ****}
+
+:dup		[sysinfo] ! [sysinfo] @ [sysinfo] @ ;
+:drop 		[sysinfo] ! ;
+:swap 		[sysinfo] ! >r [sysinfo] @ r> ;
+:over 		>r dup r> swap ;
+:?dup		dup if dup then ; 
+
+{*** Bitwise arithemtic ***}
+
+:not	 	dup nand ;
+:and 		nand not ;
+:or 		not swap not nand ;
+:xor 		over over not and >r swap not and r> or ;
+
+{ *** Simple unary/binary arithmetic and comparisions *** }
+
+:1+ 		1 + ;
+:1- 		-1 + ;
+:2+ 		2 + ;
+:2- 		$FFFE + ;
+:0-			not 1+ ;
+:- 			0- + ;
+:2* 		dup + ;
+:0< 		$8000 and 0= 0= ;
+
+{ *** Add to memory *** }
+
+:+! 		dup [sysinfo] ! @ + [sysinfo] @ ! ;
+
+{ *** Variable helper *** }
+
+:[variable]	[r>] ;
+
+{ *** for/next helper *** }
+
+{ gets the counter off the rstack, decrements, if non zero push it back, return 0 to loop }
+
+:[next]	[r>] r> 1- dup if dup >r then swap >r 0= ; 
+
+
