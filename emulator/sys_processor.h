@@ -38,6 +38,8 @@ typedef struct _CPUSTATUS {
 	WORD16 *returnStack;
 	WORD16 pc;
 	WORD16 cycles;
+	BYTE8 zFlag;
+	BYTE8 sFlag;
 	BYTE8 page;
 	BYTE8 dsp;
 	BYTE8 rsp;

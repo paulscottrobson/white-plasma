@@ -28,6 +28,7 @@ static WORD16 returnStack[32],dataStack[32];									// Stacks
 static WORD16 pc;																// Program Counter
 static WORD16 page;																// Currently mapped page
 static WORD16 cycles;
+static WORD16 testFlags;														// Flag status.
 
 // *******************************************************************************************************************************
 //											  Paged memory code
@@ -85,19 +86,10 @@ static void __error(const char *msg) {
 void CPUReset(void) {
 
 	for (int i = 0x100;i < 0x1000;i++) memory[i] = rand();
-	rSP = dSP = 0;
+	rSP = dSP = 0;testFlags = 0;
 	page = READ8(SYS_DICTIONARY_BASE_ADDRESS+9);
 	pc = READ16(SYS_DICTIONARY_BASE_ADDRESS+10);
 	cycles = 0;
-
-/*	WRITE16(0x0000,0x1000);
-	WRITE16(0x9000,KWD_LQ_LIT_RQ);
-	WRITE16(0x9002,42);
-	WRITE16(0x9004,0x6442);
-	WRITE16(0x9006,KWD_LQ_FARCALL_RQ);
-	WRITE16(0x9008,0x3102);
-	WRITE16(0xE442,KWD_SEMICOLON);
-	FARWRITE16(2,0xCC40,KWD_SEMICOLON);*/
 	HWIReset();
 }
 
@@ -194,6 +186,8 @@ CPUSTATUS *CPUGetStatus(void) {
 	s.pc = pc;
 	s.page = page;
 	s.cycles = cycles;
+	s.zFlag = (testFlags == 0);
+	s.sFlag = (testFlags & 0x8000) != 0;
 	return &s;
 }
 #endif

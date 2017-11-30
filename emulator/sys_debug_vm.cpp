@@ -81,7 +81,7 @@ void DBGXRender(int *address,int showDisplay) {
 
 	CPUSTATUS *s = CPUGetStatus();													// Get the CPU Status
 
-	const char *labels2[] = { "PC","BP","CY","PAGE",NULL };
+	const char *labels2[] = { "PC","BP","CY","PAGE","FLAGS",NULL };
 	n = 0;
 	while (labels2[n] != NULL) {
 		GFXString(GRID(26,n*3),labels2[n],GRIDSIZE,DBGC_ADDRESS,-1);
@@ -91,6 +91,9 @@ void DBGXRender(int *address,int showDisplay) {
 	GFXNumber(GRID(26,4),address[3],16,4,GRIDSIZE,DBGC_DATA,-1);
 	GFXNumber(GRID(26,7),s->cycles,16,4,GRIDSIZE,DBGC_DATA,-1);
 	GFXNumber(GRID(26,10),s->page,16,2,GRIDSIZE,DBGC_DATA,-1);
+
+	GFXString(GRID(26,13),s->sFlag ? "S":".",GRIDSIZE,DBGC_DATA,-1);
+	GFXString(GRID(27,13),s->zFlag ? "Z":".",GRIDSIZE,DBGC_DATA,-1);
 
 	n = address[1];																	// Dump memory.
 	for (int row = 17;row < 24;row++) {
@@ -127,10 +130,11 @@ void DBGXRender(int *address,int showDisplay) {
 			if (target < KWD_COUNT) {
 				strcpy(buffer,_mnemonics[target]);
 			}
-			if (opcode == KWD_LQ_BZ_RQ || opcode == KWD_LQ_LIT_RQ) {
+			if (opcode == KWD_LQ_BR_DOT_ZERO_RQ || opcode == KWD_LQ_BR_DOT_POS_RQ || 
+				opcode == KWD_LQ_BR_RQ || opcode == KWD_LQ_LITERAL_RQ) {
 				int param = CPURead(n)+CPURead(n+1)*256;
 				n = n + 2;
-				if (opcode != KWD_LQ_LIT_RQ) param = (param + n) & 0xFFFF;
+				if (opcode != KWD_LQ_LITERAL_RQ) param = (param + n) & 0xFFFF;
 				sprintf(buffer+strlen(buffer)," %04x",param);
 			}
 		} else {
@@ -144,9 +148,10 @@ void DBGXRender(int *address,int showDisplay) {
 	SDL_Rect rc,rc2,rc3;
 	int w = CPURead(SYS_DICTIONARY_BASE_ADDRESS+12);
 	int h = CPURead(SYS_DICTIONARY_BASE_ADDRESS+13);
-	rc.w = 5;rc.h = 3;
+	if (w == 0 || h == 0) { w = 20;h = 12; }
+	rc.w = 3;rc.h = 3;
 	if (w > 30 || h > 16) {
-		rc.w = 3;rc.h = 2;
+		rc.w = 2;rc.h = 2;
 	}
 	rc2.w = w * 8 * rc.w;rc2.h = 14 * h * rc.h;
 	rc2.x = WIN_WIDTH/2-rc2.w/2;rc2.y = WIN_HEIGHT/2-rc2.h/2;

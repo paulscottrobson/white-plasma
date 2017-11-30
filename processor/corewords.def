@@ -1,27 +1,3 @@
-.define [halt]
-	pc = (pc - 2) & 0xFFFF
-
-.define @
-	w1 = PULLD();PUSHD(READ16(w1))
-
-.define c@
-	w1 = PULLD();PUSHD(READ8(w1))
-
-.define !
-	w1 = PULLD();w2 = PULLD();WRITE16(w1,w2)
-
-.define c!
-	w1 = PULLD();w2 = PULLD();WRITE8(w1,w2)
-
-.define page!
-	SETPAGE(PULLD())
-
-.define >r
-	w1 = PULLD();PUSHR(w1)
-
-.define r>
-	w1 = PULLR();PUSHD(w1);
-
 .define ;
 	pc = PULLR();
 	if ((pc & 0x8000) == 0) { 
@@ -29,60 +5,82 @@
 		SETPAGE(PULLR()); 
 	}
 
+.define !
+	w1 = PULLD();w2 = PULLD();WRITE16(w1,w2)
+
+.define ?
+	testFlags = TOS()
+
+.define [br.zero]
+	w1 = READ16(pc);pc = pc + 2;
+	if (testFlags == 0) pc = (pc + w1) & 0xFFFF;
+
+.define [br.pos]
+	w1 = READ16(pc);pc = pc + 2;
+	if ((testFlags & 0x8000) == 0) pc = (pc + w1) & 0xFFFF;
+
+.define [br]
+	w1 = READ16(pc);pc = pc + 2;
+	pc = (pc + w1) & 0xFFFF;
+
+.define [clr.ds]
+	dSP = 0;
+
+.define [clr.rs]
+	rSP = 0;
+
+.define [halt]
+	pc = (pc - 2) & 0xFFFF
+
+.define [literal]
+	w1 = READ16(pc);pc = pc + 2;PUSHD(w1);
+
+.define [nop]
+	;
+
 .define [r>]
 	w1 = PULLR();
 	if ((w1 & 0x8000) == 0) ERROR("[>R] triggered on far call");
 	PUSHD(w1);
 
-.define [farcall]
-	w1 = READ16(pc);pc = pc + 2;
-	PUSHR(GETPAGE());
-	PUSHR(pc & 0x7FFF);
-	SETPAGE(w1 & 0x1F);
-	pc = ((w1 & 0xFFE0) >> 2) | 0xC000
-
-.define [nop]
-	;
-
-.define [lit]
-	w1 = READ16(pc);pc = pc + 2;PUSHD(w1);
-
-.define [bz]
-	w1 = READ16(pc);pc = pc + 2;
-	if (PULLD() == 0) pc = (pc + w1) & 0xFFFF;
-	
-.define +
-	w1 = PULLD();w2 = PULLD();PUSHD(w1+w2);
-
-.define nand
-	w1 = PULLD();w2 = PULLD();PUSHD((w1 & w2) ^ 0xFFFF);
-
-.define 2/
-	w1 = PULLD();w1 = (w1 >> 1) | (w1 & 0x8000);PUSHD(w1)
-
-.define 0=
-	w1 = PULLD();w1 = (w1 == 0) ? 0xFFFF:0x0000;PUSHD(w1)
-
 .define [sysinfo]
 	PUSHD(SYS_DICTIONARY_BASE_ADDRESS);
 
+.define @
+	w1 = PULLD();PUSHD(READ16(w1))
+
+.define +
+	w1 = PULLD();w2 = PULLD();testFlags = w1+w2;PUSHD(testFlags);
+
+.define >r
+	w1 = PULLD();PUSHR(w1)
+
+.define 2/
+	w1 = PULLD();testFlags = w1 = (w1 >> 1) | (w1 & 0x8000);PUSHD(w1)
+
+.define c!
+	w1 = PULLD();w2 = PULLD();WRITE8(w1,w2)
+
+.define c@
+	w1 = PULLD();PUSHD(READ8(w1))
+
 .define cursor!
 	HWISetCursor(PULLD());
+
+.define keyboard@
+	w1 = HWIGetKey();PUSHD(w1);
+
+.define nand
+	w1 = PULLD();w2 = PULLD();testFlags = (w1 & w2) ^ 0xFFFF;PUSHD(testFlags);
+
+.define page!
+	SETPAGE(PULLD())
+
+.define r>
+	w1 = PULLR();PUSHD(w1);
 
 .define screen!
 	w1 = PULLD();w2 = PULLD();
 	if (w1 >= 0 && w1 < 1024) {
 		memory[SYS_DISPLAY_MEMORY+w1] = w2 & 0xFF;
 	}
-
-.define keyboard@
-	w1 = HWIGetKey();PUSHD(w1);
-
-.define block@
-	;
-
-.define [stackreset]
-	rSP = dSP = 0;
-
-.define block!
-	;

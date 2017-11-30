@@ -3,4 +3,4 @@
 #
 class CoreWords:
   def getWordList(self):
-    return ["[halt]","@","c@","!","c!","page!",">r","r>",";","[r>]","[farcall]","[nop]","[lit]","[bz]","+","nand","2/","0=","[sysinfo]","cursor!","screen!","keyboard@","block@","[stackreset]","block!"]
+    return [";","!","?","[br.zero]","[br.pos]","[br]","[clr.ds]","[clr.rs]","[halt]","[literal]","[nop]","[r>]","[sysinfo]","@","+",">r","2/","c!","c@","cursor!","keyboard@","nand","page!","r>","screen!"]
