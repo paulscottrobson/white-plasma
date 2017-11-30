@@ -200,6 +200,7 @@ class Compiler:
 	#	Compile a source file.
 	#
 	def compileFile(self,sourceFile):
+		print("Compiling "+sourceFile)
 		self.compileText(open(sourceFile).readlines(),sourceFile)
 	#
 	#	Compile an array of text lines
@@ -221,8 +222,9 @@ class Compiler:
 			if p2 < p1 or p2 < 0:
 				raise CompilerException("Bad comment")
 			line = line[:p1]+line[p2+1:]
-		# remove tabs, make l/c
+		# remove tabs, make l/c		
 		line = line.replace("\t"," ").lower()
+		print(">>",line)
 		for word in line.split(" "):
 			if word != "":
 				self.compileWord(word)
@@ -318,7 +320,7 @@ class Compiler:
 		if word == "if":
 			if self.ifLink is not None:
 				raise CompilerException("Previous if not closed")
-			self.compileWord("[bzero]")
+			self.compileWord("[bz]")
 			self.ifLink = self.pointer 
 			self.pointer += 2
 			return 
@@ -341,7 +343,7 @@ class Compiler:
 			if self.forLink is None:
 				raise CompilerException("next without for")
 			self.compileWord("[next]")
-			self.compileWord("[bzero]")
+			self.compileWord("[bz]")
 			self.compileDataWord((self.forLink-(self.pointer+2)) & 0xFFFF)
 			self.forLink = None
 			return 
@@ -355,7 +357,7 @@ class Compiler:
 		if word == "until":
 			if self.doLink is None:
 				raise CompilerException("until without do")
-			self.compileWord("[bzero]")
+			self.compileWord("[bz]")
 			self.compileDataWord((self.doLink-(self.pointer+2)) & 0xFFFF)
 			self.doLink = None
 			return 

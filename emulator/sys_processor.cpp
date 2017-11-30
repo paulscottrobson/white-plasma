@@ -28,7 +28,6 @@ static WORD16 returnStack[32],dataStack[32];									// Stacks
 static WORD16 pc;																// Program Counter
 static WORD16 page;																// Currently mapped page
 static WORD16 cycles;
-static BYTE8 memoryAccessPage;													// page! f@ f! page.
 
 // *******************************************************************************************************************************
 //											  Paged memory code
@@ -39,11 +38,8 @@ static BYTE8 memoryAccessPage;													// page! f@ f! page.
 #define WRITE16(a,d) 	__write16(a,d)
 #define WRITE8(a,d)		__write8(a,d)
 
-#define FARREAD16(p,a)		__farread16(p,a)					// Access any page.
-#define FARWRITE16(p,a,d) 	__farwrite16(p,a,d)
-
 #define SETPAGE(n)		page = (n)
-#define GETPAGE(n) 		(page)
+#define GETPAGE()		(page)
 
 static LONG32 inline __addressMap(WORD16 address) {
 	if (address < 0xC000) return address;
@@ -69,19 +65,6 @@ static BYTE8 inline __read8(WORD16 address) {
 static void inline __write8(WORD16 address,BYTE8 data) {
 	LONG32 addr = __addressMap(address);
 	memory[addr] = data;
-}
-
-static WORD16 __farread16(BYTE8 altPage,WORD16 address) {
-	BYTE8 p = page;page = altPage;
-	WORD16 data = __read16(address);
-	page = p;
-	return data;
-}
-
-static void __farwrite16(BYTE8 altPage,WORD16 address,WORD16 data) {
-	BYTE8 p = page;page = altPage;
-	__write16(address,data);
-	page = p;
 }
 
 // *******************************************************************************************************************************
@@ -125,6 +108,7 @@ void CPUReset(void) {
 #include <stdlib.h>
 #include <stdio.h>
 
+#define TOS() 		dataStack[dSP-1]
 #define PULLD() 	dataStack[--dSP]
 #define PUSHD(n) 	dataStack[dSP++] = (n)
 #define PULLR() 	returnStack[--rSP]

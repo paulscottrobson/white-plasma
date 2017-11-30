@@ -16,7 +16,7 @@
 #include "gfx.h"																
 
 static BYTE8 currentKey = 0;
-static BYTE8 cursorPos = 0;
+static WORD16 cursorPos = 0;
 
 // *******************************************************************************************************************************
 //										Hardware Reset
@@ -37,10 +37,10 @@ void HWIEndFrame() {
 //									Get and set cursor position
 // *******************************************************************************************************************************
 
-void HWISetCursor(BYTE8 pos) {
+void HWISetCursor(WORD16 pos) {
 	cursorPos = pos;
 }
-BYTE8 HWIGetCursor(void) {
+WORD16 HWIGetCursor(void) {
 	return cursorPos;
 }
 

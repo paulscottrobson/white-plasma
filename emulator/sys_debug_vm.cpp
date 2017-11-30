@@ -127,17 +127,11 @@ void DBGXRender(int *address,int showDisplay) {
 			if (target < KWD_COUNT) {
 				strcpy(buffer,_mnemonics[target]);
 			}
-			if (opcode == KWD_LQ_BZERO_RQ || opcode == KWD_LQ_LIT_RQ || opcode == KWD_LQ_FARCALL_RQ) {
+			if (opcode == KWD_LQ_BZ_RQ || opcode == KWD_LQ_LIT_RQ) {
 				int param = CPURead(n)+CPURead(n+1)*256;
 				n = n + 2;
-				if (opcode == KWD_LQ_BZERO_RQ) param = (param + n) & 0xFFFF;
-				if (opcode == KWD_LQ_FARCALL_RQ) {
-					target = ((param & 0xFFE0) >> 2)|0xC000;
-					strcpy(buffer,"far");
-					strcpy(buffer+strlen(buffer),__DBGXGetFunctionName(target,param & 0x1F));
-				} else {
-					sprintf(buffer+strlen(buffer)," %04x",param);
-				}
+				if (opcode != KWD_LQ_LIT_RQ) param = (param + n) & 0xFFFF;
+				sprintf(buffer+strlen(buffer)," %04x",param);
 			}
 		} else {
 			strcpy(buffer,__DBGXGetFunctionName(opcode|0x8000,s->page));
@@ -159,7 +153,7 @@ void DBGXRender(int *address,int showDisplay) {
 	rc3 = rc2;rc3.x -= 20;rc3.y -= 20;rc3.w+=40;rc3.h += 40;
 	GFXRectangle(&rc3,0x000);
 
-	BYTE8 cursor = HWIGetCursor();
+	WORD16 cursor = HWIGetCursor();
 
 	for (int x = 0;x < w;x++) {
 		for (int y = 0;y < h;y++) {

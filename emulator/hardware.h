@@ -15,7 +15,7 @@
 void HWIReset(void);
 int HWIProcessKey(int key,int runMode);
 BYTE8 HWIGetKey();
-void HWISetCursor(BYTE8 pos);
-BYTE8 HWIGetCursor(void);
+void HWISetCursor(WORD16 pos);
+WORD16 HWIGetCursor(void);
 void  HWIEndFrame(void);
 #endif

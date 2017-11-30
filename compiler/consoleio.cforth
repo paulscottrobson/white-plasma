@@ -63,7 +63,9 @@
 :getkey do keyboard@ ?dup until ;
 
 :_main $ABCD
+	cls
 	0 256 for dup emit 1+ next drop
 	codeptr u.
+	22 32 * u. 256 32 u/ u. 42 emit
 $FEDC [halt]
 

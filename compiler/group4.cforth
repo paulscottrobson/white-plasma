@@ -57,7 +57,7 @@
 :ifLink		variable 							{ if vector goes here. }
 
 :if 		macro 
-			token [bzero] ,
+			token [bz] ,
 			codeptr ifLink ! 0 ,
 ;
 
@@ -73,7 +73,7 @@
 			codePtr doLink ! ; 
 
 :until 		macro
-			token [bzero] ,
+			token [bz] ,
 			doLink @ codePtr - 2- ,
 			0 doLink ! ;
 
@@ -87,7 +87,7 @@
 
 :next 		macro	
 			token [next] ,
-			token [bzero] ,
+			token [bz] ,
 			forLink @ codePtr - 2- ,
 			0 forLink ! ;
 

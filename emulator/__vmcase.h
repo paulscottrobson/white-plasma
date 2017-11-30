@@ -8,12 +8,8 @@ case KWD_PLING:/*** ! ***/
     w1 = PULLD();w2 = PULLD();WRITE16(w1,w2);break;
 case KWD_C_PLING:/*** c! ***/
     w1 = PULLD();w2 = PULLD();WRITE8(w1,w2);break;
-case KWD_F_AT:/*** f@ ***/
-    w1 = PULLD();PUSHD(FARREAD16(memoryAccessPage,w1));break;
-case KWD_F_PLING:/*** f! ***/
-    w1 = PULLD();w2 = PULLD();FARWRITE16(memoryAccessPage,w1,w2);break;
 case KWD_PAGE_PLING:/*** page! ***/
-    memoryAccessPage = PULLD();break;
+    SETPAGE(PULLD());break;
 case KWD_GREATER_R:/*** >r ***/
     w1 = PULLD();PUSHR(w1);break;
 case KWD_R_GREATER:/*** r> ***/
@@ -28,7 +24,7 @@ case KWD_LQ_NOP_RQ:/*** [nop] ***/
     ;;break;
 case KWD_LQ_LIT_RQ:/*** [lit] ***/
     w1 = READ16(pc);pc = pc + 2;PUSHD(w1);;break;
-case KWD_LQ_BZERO_RQ:/*** [bzero] ***/
+case KWD_LQ_BZ_RQ:/*** [bz] ***/
     w1 = READ16(pc);pc = pc + 2; if (PULLD() == 0) pc = (pc + w1) & 0xFFFF;;break;
 case KWD_PLUS:/*** + ***/
     w1 = PULLD();w2 = PULLD();PUSHD(w1+w2);;break;

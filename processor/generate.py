@@ -6,7 +6,7 @@ def convert(x):
 	x = x.replace("/","_SLASH_").replace(">","_GREATER_").replace(";","_SEMICOLON_")
 	x = x.replace("=","_EQUALS_").replace("[","_LQ_").replace("]","_RQ_")
 	x = x.replace("-","_CMINUS_").replace("<","_LESS_").replace("?","_QUESTION_")
-	x = x.replace("*","_STAR_")
+	x = x.replace("*","_STAR_").replace(".","_DOT_")
 	x = "KWD_"+x
 	while x.find("__") >= 0:
 		x = x.replace("__","_")
