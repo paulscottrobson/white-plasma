@@ -17,20 +17,21 @@
 #define KWD_AT (0x800d)
 #define KWD_PLUS (0x800e)
 #define KWD_GREATER_R (0x800f)
-#define KWD_2_SLASH (0x8010)
-#define KWD_C_PLING (0x8011)
-#define KWD_C_AT (0x8012)
-#define KWD_CURSOR_PLING (0x8013)
-#define KWD_KEYBOARD_AT (0x8014)
-#define KWD_NAND (0x8015)
-#define KWD_PAGE_PLING (0x8016)
-#define KWD_R_GREATER (0x8017)
-#define KWD_SCREEN_PLING (0x8018)
-#define KWD_COUNT (25)
+#define KWD_0_EQUALS (0x8010)
+#define KWD_2_SLASH (0x8011)
+#define KWD_C_PLING (0x8012)
+#define KWD_C_AT (0x8013)
+#define KWD_CURSOR_PLING (0x8014)
+#define KWD_KEYBOARD_AT (0x8015)
+#define KWD_NAND (0x8016)
+#define KWD_PAGE_PLING (0x8017)
+#define KWD_R_GREATER (0x8018)
+#define KWD_SCREEN_PLING (0x8019)
+#define KWD_COUNT (26)
 
 #ifdef MNEMONICS
 static const char *_mnemonics[] = { 
-";","!","?","[br.zero]","[br.pos]","[br]","[clr.ds]","[clr.rs]","[halt]","[literal]","[nop]","[r>]","[sysinfo]","@","+",">r","2/","c!","c@","cursor!","keyboard@","nand","page!","r>","screen!"
+";","!","?","[br.zero]","[br.pos]","[br]","[clr.ds]","[clr.rs]","[halt]","[literal]","[nop]","[r>]","[sysinfo]","@","+",">r","0=","2/","c!","c@","cursor!","keyboard@","nand","page!","r>","screen!"
 };
 #endif
 #endif
