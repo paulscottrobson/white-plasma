@@ -30,6 +30,8 @@ case KWD_PLUS:/*** + ***/
     w1 = PULLD();w2 = PULLD();testFlags = w1+w2;PUSHD(testFlags);;break;
 case KWD_GREATER_R:/*** >r ***/
     w1 = PULLD();PUSHR(w1);break;
+case KWD_0_EQUALS:/*** 0= ***/
+    w1 = PULLD();testFlags = w1 = (w1 == 0) ? 0xFFFF:0x0000 ;PUSHD(w1);break;
 case KWD_2_SLASH:/*** 2/ ***/
     w1 = PULLD();testFlags = w1 = (w1 >> 1) | (w1 & 0x8000);PUSHD(w1);break;
 case KWD_C_PLING:/*** c! ***/

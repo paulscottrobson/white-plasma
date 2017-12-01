@@ -55,6 +55,9 @@
 .define >r
 	w1 = PULLD();PUSHR(w1)
 
+.define 0=
+	w1 = PULLD();testFlags = w1 = (w1 == 0) ? 0xFFFF:0x0000 ;PUSHD(w1)
+
 .define 2/
 	w1 = PULLD();testFlags = w1 = (w1 >> 1) | (w1 & 0x8000);PUSHD(w1)
 

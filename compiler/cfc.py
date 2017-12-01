@@ -195,7 +195,7 @@ class Compiler:
 		self.forLink = None
 		self.ifLink = None
 		self.doLink = None
-		self.structureList = "for,next,if,then,do,until".split(",")
+		self.structureList = "for,next,-if,if,then,begin,until".split(",")
 	#
 	#	Compile a source file.
 	#
@@ -254,10 +254,11 @@ class Compiler:
 		# Not compiling so exit.
 		if not self.compileEnabled:
 			return False
+
 		# Control structures for..next if..then[;]
 		if word in self.structureList:
 			self.compileStructure(word)
-			return		
+			return
 		# Check for dictionary item
 		dItem = self.dictionary.search(word)
 		if dItem is not None:
@@ -266,14 +267,17 @@ class Compiler:
 				self.compileDataWord(dItem.getAddress())
 			else:
 				self.compileDataWord(dItem.getAddress() & 0x7FFF)
-			return
+			# ; closes then.
+			if word == ";" and self.ifLink is not None:
+				self.compileWord("then")
+			return		
 		# Constants
 		if re.match("^\d+$",word) is not None:
-			self.compileWord("[lit]")
+			self.compileWord("[literal]")
 			self.compileDataWord(int(word,10))
 			return
 		if re.match("^\$[0-9a-f]+$",word) is not None:
-			self.compileWord("[lit]")
+			self.compileWord("[literal]")
 			self.compileDataWord(int(word[1:],16))
 			return
 		# Modifiers
@@ -287,7 +291,7 @@ class Compiler:
 		if word == "variable":
 			self.compileWord("[variable]")
 			self.compileDataWord(0)
-			self.dictionary.getLastEntry().setPrivate()
+			#self.dictionary.getLastEntry().setPrivate()
 			return
 
 			
@@ -304,8 +308,8 @@ class Compiler:
 		self.memory.writeWord(0x6006,self.pointer)
 		self.memory.writeByte(0x6008,0)
 		# screen size.
-		self.memory.writeByte(0x600C,32)
-		self.memory.writeByte(0x600D,22)
+		self.memory.writeByte(0x600C,self.getScreenSize()[0])
+		self.memory.writeByte(0x600D,self.getScreenSize()[1])
 		print("Code block: Code ($8000-${0:04x})".format(self.pointer))
 	#
 	#	Compiler helpers
@@ -317,10 +321,10 @@ class Compiler:
 	#	Handle if..then do..until and for..next structures
 	#
 	def compileStructure(self,word):
-		if word == "if":
+		if word == "if" or word == "-if":
 			if self.ifLink is not None:
 				raise CompilerException("Previous if not closed")
-			self.compileWord("[bz]")
+			self.compileWord("[br.zero]" if word == "if" else "[br.pos]")
 			self.ifLink = self.pointer 
 			self.pointer += 2
 			return 
@@ -343,33 +347,36 @@ class Compiler:
 			if self.forLink is None:
 				raise CompilerException("next without for")
 			self.compileWord("[next]")
-			self.compileWord("[bz]")
+			self.compileWord("[br.zero]")
 			self.compileDataWord((self.forLink-(self.pointer+2)) & 0xFFFF)
 			self.forLink = None
 			return 
 
-		if word == "do":
+		if word == "begin":
 			if self.doLink is not None:
-				raise CompilerException("Previous do not closed")
+				raise CompilerException("Previous begin not closed")
 			self.doLink = self.pointer 
 			return 
 
 		if word == "until":
 			if self.doLink is None:
-				raise CompilerException("until without do")
-			self.compileWord("[bz]")
+				raise CompilerException("until without begin")
+			self.compileWord("[br.zero]")
 			self.compileDataWord((self.doLink-(self.pointer+2)) & 0xFFFF)
 			self.doLink = None
 			return 
 
 		assert False,"not implemented "+word
 
+	def getScreenSize(self):
+		return [20,12]
+
 c = Compiler()
 c.compileFile("group1.cforth")
 c.compileFile("group2.cforth")
 c.compileFile("group3.cforth")
-c.compileFile("group4.cforth")
-c.compileFile("consoleio.cforth")
+#c.compileFile("group4.cforth")
+#c.compileFile("consoleio.cforth")
 #c.compileText(""" """.split("\n"))
 c.complete()
 c.memory.writeBinary("vmboot.bin")

@@ -149,9 +149,9 @@ void DBGXRender(int *address,int showDisplay) {
 	int w = CPURead(SYS_DICTIONARY_BASE_ADDRESS+12);
 	int h = CPURead(SYS_DICTIONARY_BASE_ADDRESS+13);
 	if (w == 0 || h == 0) { w = 20;h = 12; }
-	rc.w = 3;rc.h = 3;
+	rc.w = 4;rc.h = 3;
 	if (w > 30 || h > 16) {
-		rc.w = 2;rc.h = 2;
+		rc.w = 3;rc.h = 2;
 	}
 	rc2.w = w * 8 * rc.w;rc2.h = 14 * h * rc.h;
 	rc2.x = WIN_WIDTH/2-rc2.w/2;rc2.y = WIN_HEIGHT/2-rc2.h/2;

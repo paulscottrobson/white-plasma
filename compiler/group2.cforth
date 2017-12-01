@@ -15,25 +15,34 @@
 
 { *** Arithmetic Operators *** }
 
-:abs 		dup 0< if 0- then ;
-:max 		over over - 0< if swap then drop ;
-:min 		over over - 0< 0= if swap then drop ;
-
-{ *** Stack Operators *** }
-
-:rdrop 		[r>] r> drop >r ;
-:nip 		swap drop ;
+:abs 		? -if negate then ;
+:max 		less if swap then drop ;
+:min 		less if drop ; swap drop ;
 
 { *** Comparison operators *** }
 
-:0> 		0- 0< ;
-:0>= 		0< not ;
-:0<= 		0> not ;
+{ all of these, and less, set the Z flag if false, so you can do if .... then }
 
-:< 			- 0< ;
-:>= 		< 0= ;
-:>	 		swap < ;
-:<= 		> 0= ;
-:= 			- 0= ;
-:<> 		= 0= ;
+:equal 		over over or 0= ? drop  ;
+:notequal   over over or drop ;
+:greaterequal over over negate + - $8000 and drop ;
+:greater 	over over swap negate + $8000 and drop ;
+
+{ *** Scalars - note these are all arithmetic *** }
+
+:16* 		2* 2*
+:4* 		2* 2* ;
+:256* 		16* 16* ;
+
+:16/		2/ 2/
+:4/ 		2/ 2/ ;
+:256/ 		16/ 16/ ;
+
+{ *** Miscellany *** }
+
+:c 			[clr.ds] ;								{ c is synonym for clear data stack }
+
+:i 			[r>] r> dup [sysinfo] ! >r >r  [sysinfo] @ ;	{ get index value }
+
+:or! 		dup multResult ! @ +or multResult @ ! ;	{ or into memory }
 
