@@ -235,9 +235,9 @@ class Compiler:
 			line = line[:p1]+line[p2+1:]
 		# remove tabs, make l/c		
 		line = line.replace("\t"," ").lower()
-		print(">>",line)
 		for word in line.split(" "):
 			if word != "":
+				print(">>",word)
 				self.compileWord(word)
 	#
 	#	Compile a single word
@@ -286,16 +286,13 @@ class Compiler:
 			return		
 		# Constants
 		if re.match("^\d+$",word) is not None:
-			self.compileWord("[literal]")
-			self.compileDataWord(int(word,10))
+			self.compileLiteral(int(word,10))
 			return
 		if re.match("^\$[0-9a-f]+$",word) is not None:
-			self.compileWord("[literal]")
-			self.compileDataWord(int(word[1:],16))
+			self.compileLiteral(int(word[1:],16))
 			return
 		if word == "[[sysinfo]]":
-			self.compileWord("[literal]")
-			self.compileDataWord(self.compilerInfo.getLoadAddress())
+			self.compileLiteral(self.compilerInfo.getLoadAddress())
 			return
 		# Modifiers
 		if word == "macro":
@@ -337,6 +334,12 @@ class Compiler:
 	def compileDataByte(self,byte):
 		self.memory.writeByte(self.pointer,byte)
 		self.pointer += 1
+	#
+	#	Compile code to generate a literal
+	#
+	def compileLiteral(self,value):
+		self.compileWord("[literal]")
+		self.compileDataWord(int(value)
 	#
 	#	Handle if..then do..until and for..next structures
 	#
@@ -403,13 +406,12 @@ c.compileText("""
 
 	[[sysinfo]]
 	:test 22 ;
-	:_main 42 test ;
+	:_main 42 test + [break] ;
 
 """.split("\n"))
 c.complete()
 c.memory.writeBinary("vmboot.bin")
 
-# TODO: Get emulator working.
 # TODO: short literal 0-255 ?
 # TODO: short branch relative -128 .. 127 ? (consider before tests)
 # TODO: test if/then do/until for/next ?
