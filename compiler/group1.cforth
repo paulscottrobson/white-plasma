@@ -1,0 +1,71 @@
+{ ************************************************************************* }
+{ ***																	*** }
+{ ***								Group 1 Words						*** }
+{ ***																	*** }
+{ ************************************************************************* }
+
+{ *** Basic Constants *** }
+
+:0 			$0 ;
+:1 			$1 ;
+:2 			$2 ;
+:-1 		$FFFF ;
+
+{ *** Basic stack operators. Same functionality as normal FORTH *** }
+
+:dup		[[sysinfo]] ! [[sysinfo]] @ [[sysinfo]] @ ;
+:drop 		[[sysinfo]] ! ;
+:swap 		[[sysinfo]] ! >r [[sysinfo]] @ r> ;
+:over 		>r dup r> swap ;
+:nip 		swap drop ;
+:?dup		dup if dup then ;
+
+{ *** Basic binary bitwise arithmetic operators  *** }
+
+:not 		dup nand ;
+:and 		nand not ;
+:or 		not swap not nand ;
+:xor 		over over not and >r swap not and r> or ;
+
+{ *** Byte accessors *** }
+
+:c@ 		@ $00FF and ;
+:c! 		swap $FF and over @ $FF00 and or swap ! ;
+
+{ *** Simple unary/binary arithmetic and comparisions *** }
+
+:0=		 	if 0 ; $FFFF ;
+:1+ 		1 + ;
+:1- 		-1 + ;
+:2+ 		2 + ;
+:2- 		$FFFE + ;
+:0-			not 1+ ;
+:- 			0- + ;
+:2*							{ synonyms 2* and << as no difference arithmetic/logical } 
+:<<			dup + ;
+:>>			2/ $7FFF and ;
+:0< 		$8000 and 0= 0= ;
+
+{ *** Add to memory *** }
+
+:+! 		dup [[sysinfo]] ! @ + [[sysinfo]] @ ! ;
+
+{ *** Next helper *** }
+
+:[next]	r> 													{ save return address on DS}
+		r> 1- dup											{ sub 1 from count, duplicate it }
+		if >r >r 0 ;										{ if > 0 push value,ret back and zero to loop }
+		drop >r 1 ;											{ otherwise push ret back only and one to break }
+
+{ *** Variable helper *** }
+
+:[variable] r> ;
+
+{ *** Multiply worker *** }
+
+:multiplyResult variable 									{ the result is stored here }
+
+:+* 	dup 1 and 											{ check bit 1 }
+		if over multiplyResult +! then 						{ if non zero add to result }
+		>> swap << swap ; 									{ shift test right, adder left }
+

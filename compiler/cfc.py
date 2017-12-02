@@ -339,7 +339,7 @@ class Compiler:
 	#
 	def compileLiteral(self,value):
 		self.compileWord("[literal]")
-		self.compileDataWord(int(value)
+		self.compileDataWord(int(value))
 	#
 	#	Handle if..then do..until and for..next structures
 	#
@@ -397,18 +397,12 @@ class Compiler:
 		return [20,12]
 
 c = Compiler()
-#c.compileFile("group1.cforth")
-#c.compileFile("group2.cforth")
-#c.compileFile("group3.cforth")
+c.compileFile("group1.cforth")
+c.compileFile("group2.cforth")
+c.compileFile("group3.cforth")
 #c.compileFile("group4.cforth")
 #c.compileFile("consoleio.cforth")
-c.compileText(""" 
-
-	[[sysinfo]]
-	:test 22 ;
-	:_main 42 test + [break] ;
-
-""".split("\n"))
+#c.compileText(""" """.split("\n"))
 c.complete()
 c.memory.writeBinary("vmboot.bin")
 
