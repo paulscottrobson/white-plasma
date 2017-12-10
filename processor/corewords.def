@@ -11,12 +11,23 @@
 .define !
 	w1 = PULLD();w2 = PULLD();WRITE16(w1,w2)
 
-.define [brzero]
-	w1 = READ16(pc);pc = pc + 2;
-	if (PULLD() == 0) pc = w1;
+.define [br]
+	w1 = READ8(pc);pc = pc + 1;
+	if (w1 & 0x80) w1 |= 0xFF00;
+	pc = pc + w1;
+
+.define [br.zero]
+	w1 = READ8(pc);pc = pc + 1;
+	if (PULLD() == 0) {
+		if (w1 & 0x80) w1 |= 0xFF00;
+		pc = pc + w1;
+	}
 
 .define [farcall]
 	;
+
+.define [literal.s]
+	w1 = READ8(pc);pc = pc + 1;PUSHD(w1);
 
 .define [literal]
 	w1 = READ16(pc);pc = pc + 2;PUSHD(w1);
@@ -63,3 +74,4 @@
 	if (w1 >= 0 && w1 < 1024) {
 		memory[SYS_DISPLAY_MEMORY+w1] = w2 & 0xFF;
 	}
+	

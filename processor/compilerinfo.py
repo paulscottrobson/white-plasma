@@ -3,7 +3,7 @@
 #
 class CompilerInfo:
   def getWordList(self):
-    return ["[break]",";","!","[brzero]","[farcall]","[literal]","[nop]","[stackreset]","@","+",">r","2/","cursor!","keyboard@","nand","page!","r>","screen!"]
+    return ["[break]",";","!","[br]","[br.zero]","[farcall]","[literal.s]","[literal]","[nop]","[stackreset]","@","+",">r","2/","cursor!","keyboard@","nand","page!","page@","r>","screen!"]
   def getCoreAddress(self):
     return 0x8000
   def getLoadAddress(self):

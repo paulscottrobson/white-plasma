@@ -1,90 +1,75 @@
-{ ************************************************************************
+{ ************************************************************************* }
+{ ***																	*** }
+{ ***							Screen Editor							*** }
+{ ***																	*** }
+{ ************************************************************************* }
 
-									Editor
+{ scWidth/scHeight }
 
-  ************************************************************************ }
+:pad $5B00 ; 								{ Editing buffer }
+:editSize 	variable 								{ number of bytes in edit space }
+:editStart 	variable 								{ offset into screen for editing }
+:editPos 	variable 								{ cursor position }
+:eob 		$A0 ;
 
-:editBuffer   array.242 					{ array used for buffer }
+:clearBuffer 										{ clear buffer to spaces, ending in $A0 }
+	pad editSize @ for i $7F and over ! 1+ next eob swap c! ;
 
-:__edCursor variable 						{ Position of the editor cursor }
-:__edTopRow variable 						{ Top row to be edited }
-:__colour variable 							{ upper 2 colour bits }
-:__bufferSize 12 __edTopRow @ - __20* ;		{ actually used size }
-
-{ clear the buffer to all spaces }
-
-:clearEditBuffer 242 for 32 i editBuffer + c! next ;
-
-{ copy the buffer to the screen, position the cursor }
-
-:__updateScreen 
-		__edTopRow @ __20* dup editBuffer __bufferSize screen!
-		__edCursor @ + cursor! ;
-
-{ move the cursor, make it be within limits }
-
-:__moveCursor __edCursor +! 
-	__edCursor @ 
-	0 max  
-	__bufferSize 1- min 
-	__edCursor ! ;
-
-{ backspace }
-
-:__backSpace __edCursor @ 0= if ; then 
-	1 __edCursor -! 
-	__edCursor @ editBuffer + __bufferSize __edCursor @ - 1+
+:screenCopy 										{ copy to display screenaddr sourceaddr count - } 
 	for 
-		dup 1+ c@ over c! 1+
-	next drop  32 editBuffer __bufferSize + 1- c! ;
+		over over c@ swap screen! 1+ swap 1+ swap
+	next drop drop ; private
 
-{ insert character at cursor }		
+:repaint 											{ repaint whole edit display }
+	editStart @ pad editSize @ screenCopy ; private
 
-:__insertChar 
-	editBuffer __bufferSize + 
-	__bufferSize __edCursor @ - 1+
-	for dup c@ over 1+ c! 1- next drop
-	63 and __colour @ + __edCursor @ editBuffer + c! 1 __moveCursor ;		
+:setCursor 											{ set cursor position }
+	editStart @ editPos @ + cursor! ; private
 
-{ scan in given direction recolouring }
+:moveCursor editPos +! 								{ move cursor, force into limits }
+			editPos @ 0 max editSize @ 1- min editPos ! ; private
 
-:__scan __edCursor @ 						{ stack is dir pos - }
-	dup editBuffer + c@ 63 and 32 = if drop drop ; then
-	repeat 
-		dup 0< if drop drop ; then
-		dup __bufferSize >= if drop drop ; then
-		dup editBuffer + dup c@ 63 and __colour @ + swap c!
-		over + 	dup editBuffer + @ 63 and 32 = 
-	until drop drop ;
+:backSpace 											{ Delete code }
+			editPos @ 0= if drop ;
+			-1 editPos +! 
+			editPos @ pad + 
+			begin
+				dup 1+ c@ over c! 1+ dup c@ eob = 
+			until $20 swap 1- c!
+			repaint ;
+private
 
-{ edit from given row , returns $C0 terminated edit buffer in "Colour 6 bit"}
+:insert 	editSize @ dup editPos @ - swap pad + 1- swap { work out position to copy from and count }
+			for  										{ make space for new char }
+				dup 1- c@ over c! 1-
+			next drop
+			$3F and editPos @ pad + c@ $C0 and +  		{ make 6 bit ASCII colour same as current }
+			dup $3F and $20 = if drop $60 then 			{ space is stored as $60 whatever }
+			editPos @ pad + c! 1 moveCursor repaint ; 	{ write into memory and repaint }
+private
 
-:editor 	__edTopRow ! 0 __edCursor ! 	{ save top row reset cursor}
-			repeat
-				__updateScreen				
-				getKey 
-				dup 8 =  if __backSpace then
-				dup 20 = if -20 __moveCursor then
-				dup 21 = if 20  __moveCursor then
-				dup 22 = if -1 __moveCursor then
-				dup 23 = if 1  __moveCursor then
-				dup $FC and 16 = if dup 3 and 16* 4* __colour ! 
-												1 __scan -1 __scan then
-				dup 32 >= if dup __insertChar then 
-			13 = until editBuffer __bufferSize over + $C0 swap c! ;
+:editBuffer
+ 	repaint
+	begin
+		setCursor key
+		dup 8 =  if backspace then 
+		dup 9 =  if drop 1 ; 
+		dup 20 = if scWidth negate moveCursor then 
+		dup 21 = if scWidth moveCursor then 
+		dup 22 = if -1 moveCursor then  
+		dup 23 = if 1 moveCursor then
+		dup 32 >= if dup insert then 
+		13 = 
+	until 0
 ;
 
-:_main
-	$FEDC
-	cls [codebase] h. here h. 
-	{ sys$reset only when you don't exit _main }
-	clearEditBuffer 
-	space $0F emit $0B emit cr
-	8 editor h.
-	$ABCD
-;
+:_main $ABCD
+	80 editSize ! 20 editStart ! 
 
-{
-	Changes list:
-		20-11-2017 :	First editor completed.
-}
+	screen top clearBuffer
+	
+	editBuffer
+
+$FEDC [stop]
+
+{ Todo: enter characters ; TAB key ; recolouring characters }

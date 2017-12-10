@@ -15,8 +15,8 @@
 #include "hardware.h"
 #include "gfx.h"																
 
-static BYTE8 currentKey = 0;
 static WORD16 cursorPos = 0;
+static BYTE8 currentKey = 0;
 
 // *******************************************************************************************************************************
 //										Hardware Reset
@@ -49,9 +49,7 @@ WORD16 HWIGetCursor(void) {
 // *******************************************************************************************************************************
 
 BYTE8 HWIGetKey() {
-	BYTE8 key = currentKey;
-	currentKey = 0;
-	return key;
+	return currentKey;
 }
 
 // *******************************************************************************************************************************
@@ -59,21 +57,27 @@ BYTE8 HWIGetKey() {
 // *******************************************************************************************************************************
 
 int HWIProcessKey(int key,int runMode) {
+
+	currentKey = 0;
 	if (key <= 0) return key;
 	int aKey = GFXToASCII(key,1);
 	if (aKey >= 32 && aKey < 96) currentKey = aKey;
 	if (aKey >= 'a' && aKey <= 'z') currentKey = aKey - 32;
 	if (aKey == 13 || aKey == 8) currentKey = aKey;
-	/*
+
+	/*	
 	if (key == GFXKEY_F2) currentKey = 16;
 	if (key == GFXKEY_F3) currentKey = 17;
 	if (key == GFXKEY_F4) currentKey = 18;
 	if (key == GFXKEY_F5) currentKey = 19;
 	*/
+	
 	if (key == GFXKEY_UP) currentKey = 20;
 	if (key == GFXKEY_DOWN) currentKey = 21;
 	if (key == GFXKEY_LEFT) currentKey = 22;
 	if (key == GFXKEY_RIGHT) currentKey = 23;
+
+	if (key == GFXKEY_TAB) currentKey = 9;
 	//printf("%d %d %d\n",aKey,key,currentKey);
 	return key;
 }

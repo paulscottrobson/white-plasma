@@ -16,10 +16,9 @@
 //															Timing
 // *******************************************************************************************************************************
 	
-#define CYCLES_PER_SECOND	(100000)												// Clock at 500Khz
-#define FRAME_RATE			(60)													// Frame rate
-#define CYCLES_PER_FRAME	(CYCLES_PER_SECOND/FRAME_RATE)							// Instructions/Second
-
+#define CYCLES_PER_SECOND	(100000)												// Clock = ins/sec
+#define FRAME_RATE			(50)													// Frame rate
+#define CYCLES_PER_FRAME	(CYCLES_PER_SECOND/FRAME_RATE)							// Instructions/Frame
 #define SYS_DISPLAY_MEMORY 	(0x100)
 
 typedef unsigned short WORD16;														// 8 and 16 bit types.

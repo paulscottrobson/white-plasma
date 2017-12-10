@@ -1,0 +1,69 @@
+{ ************************************************************************* }
+{ ***																	*** }
+{ ***						Console I/O Routines						*** }
+{ ***																	*** }
+{ ************************************************************************* }
+
+{ This has a Speccy style arrangement - you can edit in the bottom 4 lines }
+{ and the lines above that display results. }
+
+:scWidth		[[sysinfo]] 14 + c@ ; 						{ get screen width and height }
+:scHeight 		[[sysinfo]] 15 + c@ ; 
+:editLines 		4 ; 										{ space for editing at the screen base }
+
+:xCursor		variable 									{ Cursor position }
+:yCursor 		variable
+:colour 		variable ; 									{ current colour }
+:color 			color ;	
+
+:calcScreenAddr	yCursor @ scWidth * xCursor @ + ; private 	{ convert xy to a screen address }
+
+:xyCursor 		calcScreenAddr cursor! ; private 			{ position hardware cursor at xy }
+
+{ *** Home Cursor *** }
+
+:top 			0 xCursor ! 0 yCursor ! xyCursor ;
+
+{ *** Clear Screen *** }
+
+:screen 		scWidth scHeight * begin 1- $20 over screen! dup 0= until drop ;
+
+{ *** New line *** }
+
+:cr   			0 xCursor ! 1 yCursor +!
+				yCursor @ scHeight editLines - = if screen top then
+				xyCursor ;
+
+{ *** Send out one (colour) character *** }
+
+:emit 			$3F and colour @ 16* 4* + calcScreenAddr screen! 
+	  			1 xCursor +! xCursor @ scWidth = if cr then
+	  			xyCursor ;
+
+{ *** Print a space *** }
+
+:space 			32 emit ;
+
+{ *** Colours *** }
+
+:yellow 		0 colour ! ;
+:green 			1 colour ! ;
+:red 			2 colour ! ;
+:white 			3 colour ! ;
+
+{ *** Hex printing routine *** }
+
+:__h.1			15 and 10 - dup 0< if 7 - then 65 + emit ; private 
+:__h.2			dup 16/ __h.1 __h.1 ; private
+:h. 			space dup 256/ __h.2 __h.2 ;
+
+{ *** Input a key *** }
+
+{ Key values are : ASCII 32-95 13 Return 8 B/S 9 TAB }
+{ 16-19 Colour YGRW (F2-F5) 20-23 UDLR Cursor keys   }
+{ decoding is done in the keyboard@ primitive }
+
+:key 	begin keyboard@ 0= until
+		0 begin drop keyboard@ dup until ;
+
+		

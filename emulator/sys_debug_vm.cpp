@@ -1,7 +1,7 @@
 // *******************************************************************************************************************************
 // *******************************************************************************************************************************
 //
-//		Name:		sys_debug_8008.cpp
+//		Name:		sys_debug_vm.cpp
 //		Purpose:	Debugger Code (System Dependent)
 //		Created:	29th June 2016
 //		Author:		Paul Robson (paul@robsons.org.uk)
@@ -43,26 +43,25 @@ static char *__DBGXGetFunctionName(WORD16 address,BYTE8 page) {
 	address = address & 0xFFFF;
 	sprintf(fnBuffer,"call $%02x:%04x",page,address);
 
-	WORD16 dPtr = CPURead(SYS_ADDR_LOAD+2)+CPURead(SYS_ADDR_LOAD+3)*256  - 1;
-
+	WORD16 dPtr = CPURead(SYS_ADDR_LOAD+4)+CPURead(SYS_ADDR_LOAD+5)*256;
 	while (CPURead(dPtr) != 0) {
-		WORD16 addr = (CPURead(dPtr-1) << 8)+CPURead(dPtr-2);
-		if (addr == address && (CPURead(dPtr-3) & 0x40) == 0) {
+	//printf("%x\n",dPtr);	
+		WORD16 addr = (CPURead(dPtr+1) << 8)+CPURead(dPtr+2);
+		if (addr == address && (CPURead(dPtr+3) & 0x40) == 0) {
 
 			char *p = fnBuffer;
-			WORD16 src = dPtr - 4;
+			WORD16 src = dPtr + 4;
 			BYTE8 more;
 			do {
 				more = CPURead(src) & 0x80;
-				*p = ((CPURead(src--) & 0x7F) ^ 0x20)+0x20;
+				*p = ((CPURead(src++) & 0x7F) ^ 0x20)+0x20;
 				if (*p >= 'A' && *p <= 'Z') *p += 0x20;
 				p++;
 			} while (more != 0);
 			*p = '\0';
 			
 		}
-		
-		dPtr = dPtr - CPURead(dPtr+0);
+			dPtr = dPtr + CPURead(dPtr+0);
 	} 
 	return fnBuffer;
 }
@@ -126,11 +125,21 @@ void DBGXRender(int *address,int showDisplay) {
 			if (opcode < KWD_COUNT) {
 				strcpy(buffer,_mnemonics[opcode]);
 			}
-			if (opcode == KWD_LQ_BRZERO_RQ || opcode == KWD_LQ_LITERAL_RQ) {
+			if (opcode == KWD_LQ_BR_DOT_ZERO_RQ || opcode == KWD_LQ_BR_RQ) {
+				int param = CPURead(n);
+				n = n + 1;
+				if ((param & 0x80) != 0) param |= 0xFF00;
+				sprintf(buffer+strlen(buffer)," %04x",(param+n) & 0xFFFF);
+			}
+			if (opcode == KWD_LQ_LITERAL_RQ) {
 				int param = CPURead(n)+CPURead(n+1)*256;
 				n = n + 2;
-				//if (opcode != KWD_LQ_LITERAL_RQ) param = (param + n) & 0xFFFF;
-				sprintf(buffer+strlen(buffer)," %04x",param);
+				sprintf(buffer+strlen(buffer)," %04x",param);				
+			}
+			if (opcode == KWD_LQ_LITERAL_DOT_S_RQ) {
+				int param = CPURead(n);
+				n = n + 1	;
+				sprintf(buffer+strlen(buffer)," %02x",param);				
 			}
 		} else {
 			opcode = (opcode << 8) | CPURead(n);
@@ -142,8 +151,8 @@ void DBGXRender(int *address,int showDisplay) {
 
 	if (showDisplay == 0) return;
 	SDL_Rect rc,rc2,rc3;
-	int w = CPURead(SYS_ADDR_LOAD+12);
-	int h = CPURead(SYS_ADDR_LOAD+13);
+	int w = CPURead(SYS_ADDR_LOAD+14);
+	int h = CPURead(SYS_ADDR_LOAD+15);
 	if (w == 0 || h == 0) { w = 20;h = 12; }
 	rc.w = 4;rc.h = 3;
 	if (w > 30 || h > 16) {
@@ -160,7 +169,7 @@ void DBGXRender(int *address,int showDisplay) {
 		for (int y = 0;y < h;y++) {
 			int ch = CPURead(0x0100+x+y*w);
 			int cl = _colours[ch >> 6];
-			BYTE8 isCursor = (cursor == x+y*w) && (frameCount & 0x20) == 0;
+			BYTE8 isCursor = (cursor == x+y*w) && (frameCount & 0x10) == 0;
 			ch = ((ch & 0x3F) ^ 0x20) + 0x20;
 			int offset = 0;
 			if (ch >= 'A' && ch <= 'Z') ch += 0x20;

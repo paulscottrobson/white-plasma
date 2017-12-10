@@ -1,7 +1,7 @@
 # *******************************************************************************************
 # *******************************************************************************************
 #	
-#						Color Forth compiler for "White Plasma" runtime
+#									  Forth compiler
 #
 # *******************************************************************************************
 # *******************************************************************************************
@@ -68,7 +68,7 @@ class DictionaryItem:
 	def __init__(self,name,address,isCoreWord = False):
 		self.name = name.strip().lower()
 		self.address = address
-		self.macro = False
+		self.immediate = False
 		self.private = False
 		self.coreWord = isCoreWord 
 	#
@@ -78,8 +78,8 @@ class DictionaryItem:
 		return self.name
 	def getAddress(self):
 		return self.address
-	def isMacro(self):
-		return self.macro
+	def isImmediate(self):
+		return self.immediate
 	def isPrivate(self):
 		return self.private
 	def isCoreWord(self):
@@ -89,8 +89,8 @@ class DictionaryItem:
 	#
 	def setPrivate(self):
 		self.private = True
-	def setMacro(self):
-		self.macro = True
+	def setImmediate(self):
+		self.immediate = True
 
 # *******************************************************************************************
 #										Dictionary
@@ -140,43 +140,45 @@ class Dictionary:
 	#
 	def generate(self,memory):
 		memory.echo = False
-		dictPointer = CompilerInfo().getCoreAddress() - 1				# starts here.
+		dictPointer = CompilerInfo().getLoadAddress()+32		# starts here.
 		dCount = 0
 		for dItem in self.entries:			# for each item 		
 			if not dItem.isPrivate():		# don't need to know about private items.
 				lastWord = dictPointer
 				# address/ref
 				if dItem.isCoreWord():
-					memory.writeByte(dictPointer-1,dItem.getAddress())
+					memory.writeByte(dictPointer+1,dItem.getAddress())
 				else:
-					memory.writeByte(dictPointer-1,dItem.getAddress() >> 8)
-					memory.writeByte(dictPointer-2,dItem.getAddress() & 0xFF)
+					memory.writeByte(dictPointer+1,dItem.getAddress() >> 8)
+					memory.writeByte(dictPointer+2,dItem.getAddress() & 0xFF)
 				# control byte (not paged)
-				iByte = (0x80 if dItem.isMacro() else 0)+(0x40 if dItem.isCoreWord() else 0)
-				memory.writeByte(dictPointer-3,iByte)
+				iByte = (0x80 if dItem.isImmediate() else 0)+(0x40 if dItem.isCoreWord() else 0)
+				memory.writeByte(dictPointer+3,iByte)
 				# name
 				name = dItem.getName()
 				for i in range(0,len(name)):
-					memory.writeByte(dictPointer-4-i,(ord(name[i].upper()) & 0x3F)+(0x80 if i < len(name)-1 else 0x00))
-				dictPointer = dictPointer - 4 - len(dItem.getName())
+					memory.writeByte(dictPointer+4+i,(ord(name[i].upper()) & 0x3F)+(0x80 if i < len(name)-1 else 0x00))
+				dictPointer = dictPointer + 4 + len(dItem.getName())
 				# offset to previous
-				memory.writeByte(lastWord,lastWord-dictPointer)
+				memory.writeByte(lastWord,dictPointer-lastWord)
 				dCount += 1
 		# add ending zero.
 		memory.writeByte(dictPointer,0)
-		memory.writeByte(dictPointer-1,0)
+		memory.writeByte(dictPointer+1,0)
 		# core address reference.
 		loadAddress = CompilerInfo().getLoadAddress()
 		memory.writeWord(loadAddress+2,CompilerInfo().getCoreAddress())
-		# next free dictionary byte working down.
-		memory.writeWord(loadAddress+4,dictPointer)
+		# dictionary start
+		memory.writeWord(loadAddress+4,loadAddress+32)
+		# next free dictionary byte working up.
+		memory.writeWord(loadAddress+6,dictPointer)
 		# put _main in if there.
 		mainItem = self.search("_main")
 		if mainItem is not None:
 			# it'll be in page 0
-			memory.writeByte(0x6009,0)
+			memory.writeByte(loadAddress+11,0)
 			# start address.
-			memory.writeWord(0x600A,mainItem.getAddress())
+			memory.writeWord(loadAddress+12,mainItem.getAddress())
 		print("Dictionary : {0} entries ({1} core) down to ${2:04x}".format(dCount,self.coreCount,dictPointer))
 		memory.echo = False
 
@@ -200,13 +202,14 @@ class Compiler:
 		# compile currently enabled
 		self.compileEnabled = True 
 		# memory pointer.
-		self.pointer = self.compilerInfo.getCoreAddress()+self.compilerInfo.getBinarySize()
+		self.pointer = self.compilerInfo.getCoreAddress()+self.compilerInfo.getBinarySize()+1
 		# no structures
-		self.forLink = None
+		self.structureList = "do,loop,if,then,else,begin,until".split(",")
+		self.memory.echo = False
+		# compile mode
+		self.isCompiling = False
+		# structure stuff
 		self.ifLink = None
-		self.doLink = None
-		self.structureList = "for,next,if,then,do,until".split(",")
-		self.memory.echo = True
 	#
 	#	Compile a source file.
 	#
@@ -235,19 +238,30 @@ class Compiler:
 			line = line[:p1]+line[p2+1:]
 		# remove tabs, make l/c		
 		line = line.replace("\t"," ").lower()
-		for word in line.split(" "):
-			if word != "":
-				print(">>",word)
-				self.compileWord(word)
+		self.words = [x.strip() for x in line.split(" ") if x.strip() != ""]
+		while len(self.words) != 0:
+			self.compileWord(self.getWord())
+	#
+	#	Get a word from the input line.
+	#
+	def getWord(self):
+		if len(self.words) == 0:
+			return ""
+		w = self.words[0]
+		self.words = self.words[1:]
+		return w
 	#
 	#	Compile a single word
 	#
 	def compileWord(self,word):
+		print(">>",word)
 		# Check for definition and conditional compilation.
-		if word[0] == ':':
-			word = word[1:]	
+		if word == ':':
+			word = self.getWord()
 			if word == "":
-				raise CompilerException(":<word> without word")
+				raise CompilerException(": without word")
+			if self.isCompiling:
+				raise CompilerException("Previous word not closed.")
 			# if doesn't exist
 			if self.dictionary.search(word) is None:
 				# enable compiling
@@ -258,21 +272,28 @@ class Compiler:
 						self.compile("[nop]")
 				# add to dictionary
 				self.dictionary.add(DictionaryItem(word,self.pointer))
+				self.isCompiling = True
 			else:
 				self.compileEnabled = False
 			return
 
 		# Not compiling so exit.
 		if not self.compileEnabled:
+			if word == ";":
+				self.compileEnabled = True
+				self.isCompiling = False
 			return False
 
 		# Control structures for..next if..then[;]
 		if word in self.structureList:
 			self.compileStructure(word)
 			return
+
 		# Check for dictionary item
 		dItem = self.dictionary.search(word)
 		if dItem is not None:
+			if not self.isCompiling:
+				raise CompilerException("Code outside a colon definition")
 			# core word or direct reference to another word.
 			if dItem.isCoreWord():
 				self.compileDataByte(dItem.getAddress())
@@ -280,12 +301,12 @@ class Compiler:
 				addr = dItem.getAddress();
 				self.compileDataByte(addr >> 8)
 				self.compileDataByte(addr & 0xFF)
-			# ; closes then.
-			if word == ";" and self.ifLink is not None:
-				self.compileWord("then")
+			# ; turns off compilation
+			if word == ";":
+				self.isCompiling = False
 			return		
 		# Constants
-		if re.match("^\d+$",word) is not None:
+		if re.match("^\-?\d+$",word) is not None:
 			self.compileLiteral(int(word,10))
 			return
 		if re.match("^\$[0-9a-f]+$",word) is not None:
@@ -295,19 +316,26 @@ class Compiler:
 			self.compileLiteral(self.compilerInfo.getLoadAddress())
 			return
 		# Modifiers
-		if word == "macro":
-			self.dictionary.getLastEntry().setMacro()
+		if word == "immediate":
+			self.dictionary.getLastEntry().setImmediate()
 			return
 		if word == "private":
 			self.dictionary.getLastEntry().setPrivate()
 			return
 		# Variable
 		if word == "variable":
+			word = self.getWord()
+			if word == "":
+				raise CompilerException("variable without word")
+			if self.isCompiling:
+				raise CompilerException("Previous word not closed.")
+			self.dictionary.add(DictionaryItem(word,self.pointer))
+			self.isCompiling = True
 			self.compileWord("[variable]")
+			self.isCompiling = False
 			self.compileDataWord(0)
-			#self.dictionary.getLastEntry().setPrivate()
 			return
-			
+
 		raise CompilerException("Unknown word '{0}'".format(word))
 	#
 	#	Generate dictionary and other system values.
@@ -317,11 +345,11 @@ class Compiler:
 		# empty memory word
 		self.memory.writeWord(loadAddress,0)
 		# absolute next free code byte address and page
-		self.memory.writeWord(loadAddress+6,self.pointer)
-		self.memory.writeByte(loadAddress+8,0)
+		self.memory.writeWord(loadAddress+8,self.pointer)
+		self.memory.writeByte(loadAddress+10,0)
 		# screen size.
-		self.memory.writeByte(0x600C,self.getScreenSize()[0])
-		self.memory.writeByte(0x600D,self.getScreenSize()[1])
+		self.memory.writeByte(loadAddress+14,self.getScreenSize()[0])
+		self.memory.writeByte(loadAddress+15,self.getScreenSize()[1])
 		# create dictionary.
 		self.dictionary.generate(self.memory)
 		print("Code block: Code to ${0:04x}".format(self.pointer))
@@ -338,74 +366,54 @@ class Compiler:
 	#	Compile code to generate a literal
 	#
 	def compileLiteral(self,value):
-		self.compileWord("[literal]")
-		self.compileDataWord(int(value))
+		if not self.isCompiling:
+			raise CompilerException("Code outside a colon definition")
+		if value >= 0 and value < 256:
+			self.compileWord("[literal.s]")
+			self.compileDataByte(int(value))
+		else:
+			self.compileWord("[literal]")
+			self.compileDataWord(int(value))
 	#
 	#	Handle if..then do..until and for..next structures
 	#
 	def compileStructure(self,word):
 		if word == "if":
 			if self.ifLink is not None:
-				raise CompilerException("Previous if not closed")
-			self.compileWord("[brzero]")
-			self.ifLink = self.pointer 
-			self.pointer += 2
-			return 
+				raise CompilerException("Unclosed IF")
+			self.compileWord("[br.zero]")
+			self.ifLink = self.pointer
+			self.pointer += 1
+			return
+		if word == "else":
+			if self.ifLink is None:
+				raise CompilerException("ELSE without IF")
+			link = self.ifLink
+			self.compileWord("[br]")
+			self.ifLink = self.pointer
+			self.pointer += 1
+			self.memory.writeByte(link,(self.pointer-link-1) & 0xFF)
+			return
 
 		if word == "then":
 			if self.ifLink is None:
-				raise CompilerException("then without if")
-			self.memory.writeWord(self.ifLink,self.pointer)
+				raise CompilerException("THEN without IF")
+			self.memory.writeByte(self.ifLink,(self.pointer-self.ifLink-1) & 0xFF)
 			self.ifLink = None
-			return 
-
-		if word == "for":
-			if self.forLink is not None:
-				raise CompilerException("Previous for not closed")
-			self.compileWord(">r")
-			self.forLink = self.pointer 
-			return 
-
-		if word == "next":
-			if self.forLink is None:
-				raise CompilerException("next without for")
-			self.compileWord("[next]")
-			self.compileWord("[brzero]")
-			self.compileDataWord(self.forLink)
-			self.forLink = None
-			return 
-
-		if word == "do":
-			if self.doLink is not None:
-				raise CompilerException("Previous do not closed")
-			self.doLink = self.pointer 
-			return 
-
-		if word == "until":
-			if self.doLink is None:
-				raise CompilerException("until without begin")
-			self.compileWord("[brzero]")
-			self.compileDataWord(self.doLink)
-			self.doLink = None
-			return 
-
+			return
 		assert False,"not implemented "+word
 	##
 	#	screen dimensions.
 	#
 	def getScreenSize(self):
-		return [20,12]
+		return [24,24]
 
 c = Compiler()
-c.compileFile("group1.cforth")
-c.compileFile("group2.cforth")
-c.compileFile("group3.cforth")
-#c.compileFile("group4.cforth")
-#c.compileFile("consoleio.cforth")
-#c.compileText(""" """.split("\n"))
+c.compileFile("group1.forth")
+c.compileText(""" """.split("\n"))
 c.complete()
 c.memory.writeBinary("vmboot.bin")
 
-# TODO: short literal 0-255 ?
-# TODO: short branch relative -128 .. 127 ? (consider before tests)
-# TODO: test if/then do/until for/next ?
+
+# TODO: Editor.
+# TODO: ELSE

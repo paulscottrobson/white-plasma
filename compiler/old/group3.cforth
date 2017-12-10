@@ -1,70 +1,86 @@
-{ ************************************************************************
+{ ************************************************************************* }
+{ ***																	*** }
+{ ***								Group 3 Words						*** }
+{ ***																	*** }
+{ ************************************************************************* }
 
-								Group 3 Words
+{ *** Comparison routines. All leave # on stack if true *** }
 
-  ************************************************************************ }
+:<		- 0< ;
+:<=		- 0<= ;
+:>		- 0> ;
+:>=		- 0>= ;
+:=		- 0= ;
+:<> 	- 0= 0= ;
 
-{ *** Arithmetic Operators *** }
+{ *** Memory subtract Operators *** }
 
-.if:word+ 	:word+ 	2+	;
-.if:word- 	:word-	2-	;
-.if:-! 		:-! 	swap negate swap +! ;
-
-{ *** Shift. Note right are arithmetic not logical, except >> *** }
-
-.if:4* 		:4* 	2* 2* ;
-.if:8* 		:8* 	4* 2* ;
-.if:16* 	:16* 	4* 4* ;
-.if:256* 	:256* 	16* 16* ;
-.if:16/ 	:16/ 	2/ 2/ 2/ 2/ ;
-.if:256/ 	:256/ 	16/ 16/ ;
-
-.if:>> 		:>> 	2/ $7FFF and ;			{ these two imply logical shifts }
-.if:<< 		:<< 	2* ;
+:-! 	swap negate swap +! ;
 
 { *** Stack Operations *** }
 
-.if:rot 	:rot >r >r [temp] ! r> r> [temp] @ ; 
+:rot >r >r [[sysinfo]] ! r> r> [[sysinfo]] @ ;  
 
-{ *** Variable utility word, pushes next word addr in code on D and returns *** }
+{ *** Read/Write far memory *** }
 
-.if:[variable] :[variable] r> ;
+:farPageSelect variable private								{ page to read/write }
 
-{ *** Signed/Unsigned Multiply (bitshifter) *** }
+:farPage! farPageSelect ! ;									{ select a page }
 
-.if:*
+:far! page@ >r farPageSelect @ page! ! r> page! ;		{ write word }
 
-:__mtemp variable 						{ result of multiply }
+:far@ page@ >r farPageSelect @ page! @ r> page! ;		{ read word }
 
-:__*									{ bit test,add, shift of multiply. }
-	dup 1 and 							{ check LSB }
-	if swap dup __mtemp +! swap then 	{ if set add alt value to total }
-	>> 									{ shift right }
-	swap 2* swap 						{ shift other left }
+:farc! 	page@ >r farPageSelect @ page! 					{ save old page and switch } 
+		swap $FF and over @ $FF00 and + swap ! 				{ update value }
+		r>  page! ;										{ page back }
+
+{ *** Multiplication (16 bit unsigned) *** }
+
+:* 		0 multResult ! 
+		*+ *+ *+ *+ *+ *+ *+ *+ 			{ do the shift/multiply stuff }
+		*+ *+ *+ *+ *+ *+ *+ *+ 
+		drop drop multResult @ ;
+
+{ *** unsigned division *** }
+
+{ this is okay for casual division but not for high speed division, especially }
+{ if the Group 1/2 operators are not optimised. Currently division by zero }
+{ returns $FFFF as the quotient }
+
+:__quotient variable 							{ quotient value }
+:__remainder variable  							{ remainder value }
+
+:/												{ Numerator 2nd,Denominator top }
+	0 __quotient !
+	0 __remainder !
+	16 for
+		__remainder @ 2* __remainder !			{ shift remainder left}
+
+		over 0< if 1 __remainder +! then 		{ if numerator -ve bump remainder }
+
+		swap 2* swap 							{ shift numerator left }
+
+		__quotient @ 2* __quotient ! 			{ shift quotient left }
+
+		__remainder @ over >= if				{ if remainder >= denominator }
+			dup __remainder -! 					{ subtract denominator from remainder }
+			1 __quotient +! 					{ bump the quotient }
+		then 
+	next
+	drop drop __quotient @						
 ;
 
-:* 	0 __mtemp ! 						{ result }
-	repeat __* dup 0=  until 			{ do bit shifts until rvalue shift 0 }
-	drop drop __mtemp @ ;				{ throw away operands, return result }
+:mod / drop __remainder @ ;
 
-{ *** Very inefficient pick *** }
 
-{ but then, don't use pick ! }
+{ *** Fill memory *** }
 
-.if:pick
+:fill 	rot rot for over over c! 1+ next drop drop ; { address count character }
 
-:__ctemp variable ; 								{ temp store for pick }
+{ *** Move memory, simple copy *** }
 
-:pick
-	?dup 0= if dup ; then  							{ 0 pick is dup }
-	dup __ctemp !									{ save count }
-	repeat swap >r 1- dup 0= until drop				{ copy n to return stack }
-	dup __ctemp @ swap __ctemp ! 					{ reload count, swap with tos }
-	repeat r> swap 1- dup 0= until drop 			{ copy n back from return stack }
-	__ctemp @ 										{ return answer }	
-;
-
-{
-	Changes list:
-		19-11-2017 :	Group 3 definitions completed.
-}
+:move 	for 										{ source destination count }
+			over over swap c@ swap c! 
+			1+ swap 1+ swap 
+		next drop drop ;

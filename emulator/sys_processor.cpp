@@ -28,6 +28,8 @@ static WORD16 returnStack[32],dataStack[32];									// Stacks
 static WORD16 pc;																// Program Counter
 static WORD16 page;																// Currently mapped page
 static WORD16 cycles;
+static WORD16 frame; 										
+static BYTE8 halt;
 
 // *******************************************************************************************************************************
 //											  Paged memory code
@@ -68,17 +70,14 @@ static void inline __write8(WORD16 address,BYTE8 data) {
 }
 
 // *******************************************************************************************************************************
-//												 Error method
+//												 Stack Ops
 // *******************************************************************************************************************************
 
-/*
-#define ERROR(msg) 	__error(msg)
-
-static void __error(const char *msg) {
-	fprintf(stderr,"Error %s at %04x\n",msg,pc);
-	exit(0);
-}
-*/
+//#define TOS() 		dataStack[dSP-1]
+#define PULLD() 	dataStack[--dSP]
+#define PUSHD(n) 	dataStack[dSP++] = (n)
+#define PULLR() 	returnStack[--rSP]
+#define PUSHR(n) 	returnStack[rSP++] = (n)
 
 // *******************************************************************************************************************************
 //												Processor Reset
@@ -88,10 +87,12 @@ void CPUReset(void) {
 
 	for (int i = 0x100;i < 0x1000;i++) memory[i] = rand();
 	rSP = dSP = 0;
-	page = READ8(SYS_ADDR_LOAD+9);
-	pc = READ16(SYS_ADDR_LOAD+10);
-	cycles = 0;
+	page = READ8(SYS_ADDR_LOAD+11);
+	pc = READ16(SYS_ADDR_LOAD+12);	
+	cycles = 0;frame = 0;halt = 0;
 	HWIReset();
+	PUSHD(0);
+
 }
 
 // *******************************************************************************************************************************
@@ -101,13 +102,10 @@ void CPUReset(void) {
 #include <stdlib.h>
 #include <stdio.h>
 
-#define PULLD() 	dataStack[--dSP]
-#define PUSHD(n) 	dataStack[dSP++] = (n)
-#define PULLR() 	returnStack[--rSP]
-#define PUSHR(n) 	returnStack[rSP++] = (n)
 
 BYTE8 CPUExecuteInstruction(void) {
 	WORD16 w1,w2;
+	if (halt) return FRAME_RATE; 											// CPU stopped.
 	cycles++;
 
 	BYTE8 opcode = READ8(pc);
@@ -127,6 +125,8 @@ BYTE8 CPUExecuteInstruction(void) {
 	if (cycles < CYCLES_PER_FRAME) return 0;								// Frame in progress, return 0.
 	cycles -= CYCLES_PER_FRAME;												// Adjust cycle counter
 	HWIEndFrame();															// Hardware stuff.
+	frame++;
+	//printf("%d\n",frame);
 	return FRAME_RATE;														// Return the frame rate for sync speed.
 }
 
@@ -162,7 +162,7 @@ BYTE8 CPUExecute(WORD16 break1,WORD16 break2) {
 
 void CPULoadBinary(char *fileName) {
 	FILE *f = fopen(fileName,"rb");
-	fread(memory+SYS_ADDR_LOAD,RAMSIZE,1,f);
+	fread(memory+SYS_ADDR_LOAD,0xA000,1,f);
 	fclose(f);
 }
 

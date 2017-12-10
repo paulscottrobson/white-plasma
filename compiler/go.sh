@@ -1,1 +1,1 @@
-python cfc.py && ../emulator/plasma vmboot.bin 
+python fc.py && ../emulator/plasma vmboot.bin
